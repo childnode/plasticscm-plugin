@@ -2,25 +2,32 @@ package com.codicesoftware.plugins.hudson.commands;
 
 import com.codicesoftware.plugins.hudson.model.WorkspaceInfo;
 import com.codicesoftware.plugins.hudson.util.MaskedArgumentListBuilder;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.text.ParseException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class GetWorkspaceInfoCommand extends AbstractCommand implements ParseableCommand<WorkspaceInfo> {
     private static final String DEFAULT_SEPARATOR = "def#_#sep";
     private static final String ERROR_MSG_PREFIX = "ERROR";
 
+    private String workFolder = ".";
+
     public GetWorkspaceInfoCommand(ServerConfigurationProvider provider) {
         super(provider);
+    }
+
+    public GetWorkspaceInfoCommand(ServerConfigurationProvider provider, String workFolder) {
+        this(provider);
+        this.workFolder = workFolder;
     }
 
     public MaskedArgumentListBuilder getArguments() {
         MaskedArgumentListBuilder arguments = new MaskedArgumentListBuilder();
 
         arguments.add("wi");
+        arguments.add(workFolder);
         arguments.add("--machinereadable");
         arguments.add("--fieldseparator=" + DEFAULT_SEPARATOR);
 

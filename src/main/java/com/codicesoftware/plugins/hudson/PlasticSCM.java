@@ -4,38 +4,29 @@ import com.codicesoftware.plugins.hudson.actions.CheckoutAction;
 import com.codicesoftware.plugins.hudson.actions.RemoveWorkspaceAction;
 import com.codicesoftware.plugins.hudson.model.ChangeSet;
 import com.codicesoftware.plugins.hudson.model.Server;
+import com.codicesoftware.plugins.hudson.model.Workspace;
 import com.codicesoftware.plugins.hudson.model.WorkspaceConfiguration;
 import com.codicesoftware.plugins.hudson.util.BuildVariableResolver;
 import com.codicesoftware.plugins.hudson.util.BuildWorkspaceConfigurationRetriever;
 import com.codicesoftware.plugins.hudson.util.BuildWorkspaceConfigurationRetriever.BuildWorkspaceConfiguration;
-import hudson.AbortException;
-import hudson.Extension;
-import hudson.FilePath;
-import hudson.Launcher;
-import hudson.Util;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
-import hudson.model.Computer;
-import hudson.model.ParametersAction;
-import hudson.model.Run;
-import hudson.model.TaskListener;
+import hudson.*;
+import hudson.model.*;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
 import hudson.util.FormValidation;
+import net.sf.json.JSONObject;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
+
 import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.Calendar;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import net.sf.json.JSONObject;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * SCM for Plastic SCM
@@ -147,9 +138,10 @@ public class PlasticSCM extends SCM {
         if (lastRun == null) {
             return true;
         } else {
-            Server server = new Server(new PlasticTool(getDescriptor().getCmExecutable(), launcher, listener, workspaceFilePath.child(workfolder)));
+            Server server = new Server(new PlasticTool(getDescriptor().getCmExecutable(), launcher, listener, workspaceFilePath));
+            Workspace workspace = server.getWorkspaces().getWorkspace(workspaceName);
             try {
-                return (server.getBriefHistory(lastRun.getTimestamp(), Calendar.getInstance()).size() > 0);
+                return (workspace.getBriefHistory(lastRun.getTimestamp(), Calendar.getInstance()).size() > 0);
             } catch (ParseException e) {
                 listener.fatalError(e.getMessage());
                 throw new AbortException();

@@ -40,7 +40,7 @@ public class CheckoutAction {
                 workspacePath.deleteContents();
             }
             workspace = workspaces.newWorkspace(workspacePath, workspaceName, workfolder, selector);
-            server.getFiles(workfolder);
+            workspace.getFiles(workfolder);
         } else {
             workspace = workspaces.getWorkspace(workspaceName);
             if (!workspace.getSelector().equals(selector)) {
@@ -48,13 +48,13 @@ public class CheckoutAction {
                 workspaces.setWorkspaceSelector(workspacePath, workspace);
             }
             else {
-            	server.getFiles(workfolder);
+                workspace.getFiles(workfolder);
             }
         }
 
 
         if (lastBuildTimestamp != null) {
-            return server.getDetailedHistory(lastBuildTimestamp, currentBuildTimestamp);
+            return workspace.getDetailedHistory(lastBuildTimestamp, currentBuildTimestamp);
         }
         return new ArrayList<ChangeSet>();
     }

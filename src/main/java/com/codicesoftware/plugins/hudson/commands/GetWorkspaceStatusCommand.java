@@ -14,15 +14,22 @@ import java.util.regex.Pattern;
 public class GetWorkspaceStatusCommand extends AbstractCommand implements ParseableCommand<List<ChangesetID>> {
     private static final Pattern statusRegex = Pattern.compile("^cs:(\\d+)@rep:(.+)@repserver:(.+):(\\d+)$");
 
+    private String workFolder = ".";
+
     public GetWorkspaceStatusCommand(ServerConfigurationProvider provider) {
         super(provider);
+    }
+
+    public GetWorkspaceStatusCommand(ServerConfigurationProvider provider, String workFolder) {
+        this(provider);
+        this.workFolder = workFolder;
     }
 
     public MaskedArgumentListBuilder getArguments() {
         MaskedArgumentListBuilder arguments = new MaskedArgumentListBuilder();
 
         arguments.add("status");
-
+        arguments.add(workFolder);
         return arguments;
     }
 
