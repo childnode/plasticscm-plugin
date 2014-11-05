@@ -55,6 +55,11 @@ public class PlasticSCM extends SCM {
         this.useUpdate = useUpdate;
     }
 
+    /**
+     * This is a getter for Hudson only! Don't use it
+     * See getWorkspace() instead or better use the WorkSpaceConfig from getWorkspaceConfigurationForBuild()!
+     * @return the raw string that is set in build config
+     */
     public String getWorkspaceName() {
         return workspaceName;
     }
@@ -75,18 +80,55 @@ public class PlasticSCM extends SCM {
     public ChangeLogParser createChangeLogParser() {
         return new ChangeSetReader();
     }
-    
-    String getWorkspace(AbstractBuild<?,?> build, Computer computer) {
+
+    protected WorkspaceConfiguration getWorkspaceConfigurationForBuild(AbstractBuild build)
+    {
+        return new WorkspaceConfiguration(
+                normalizeAndEvaluateWorkspaceNameStringForBuild(build),
+                selector,
+                workfolder
+        );
+    }
+
+    protected WorkspaceConfiguration getWorkspaceConfigurationForJob(Job job)
+    {
+        return new WorkspaceConfiguration(
+                normalizeAndEvaluateWorkspaceNameStringForJob(job),
+                selector,
+                workfolder
+        );
+    }
+
+    private String normalizeAndEvaluateWorkspaceNameStringForBuild(AbstractBuild<?,?> build) {
         normalizedWorkspace = workspaceName;
-        
+
         if (build != null) {
             normalizedWorkspace = substituteBuildParameter(build, normalizedWorkspace);
-            normalizedWorkspace = Util.replaceMacro(normalizedWorkspace, new BuildVariableResolver(build.getProject(), computer));
+            normalizedWorkspace = substituteJobParameter(build.getProject(), normalizedWorkspace);
         }
-        normalizedWorkspace = normalizedWorkspace.replaceAll("[\"/:<>\\|\\*\\?]+", "_");
-        normalizedWorkspace = normalizedWorkspace.replaceAll("[\\.\\s]+$", "_");
+        normalizedWorkspace = substituteInvalidCharacters(normalizedWorkspace);
+        return normalizedWorkspace;
+    }
+
+    private String normalizeAndEvaluateWorkspaceNameStringForJob(Job<?,?> job) {
+        normalizedWorkspace = workspaceName;
+        
+        if (job != null) {
+            normalizedWorkspace = substituteJobParameter(job, normalizedWorkspace);
+        }
+        normalizedWorkspace = substituteInvalidCharacters(normalizedWorkspace);
 
         return normalizedWorkspace;
+    }
+
+    private String substituteInvalidCharacters(String text) {
+        text = text.replaceAll("[\"/:<>\\|\\*\\?]+", "_");
+        text = text.replaceAll("[\\.\\s]+$", "_");
+        return text;
+    }
+
+    private String substituteJobParameter(Job<?,?> prj, String text) {
+        return Util.replaceMacro(text, new BuildVariableResolver(prj, Computer.currentComputer()));
     }
 
     private String substituteBuildParameter(Run<?,?> run, String text) {
@@ -104,7 +146,7 @@ public class PlasticSCM extends SCM {
     public boolean checkout(AbstractBuild build, Launcher launcher, FilePath workspaceFilePath,
             BuildListener listener, File changelogFile) throws IOException, InterruptedException {
         Server server = new Server(new PlasticTool(getDescriptor().getCmExecutable(), launcher, listener, workspaceFilePath));
-        WorkspaceConfiguration workspaceConfiguration = new WorkspaceConfiguration(getWorkspace(build, Computer.currentComputer()), selector, workfolder);
+        WorkspaceConfiguration workspaceConfiguration = getWorkspaceConfigurationForBuild(build);
 
         if (build.getPreviousBuild() != null) {
             BuildWorkspaceConfiguration nodeConfiguration = new BuildWorkspaceConfigurationRetriever().getLatestForNode(build.getBuiltOn(), build.getPreviousBuild());
@@ -135,11 +177,13 @@ public class PlasticSCM extends SCM {
     @Override
     public boolean pollChanges(AbstractProject hudsonProject, Launcher launcher, FilePath workspaceFilePath, TaskListener listener) throws IOException, InterruptedException {
         Run<?,?> lastRun = hudsonProject.getLastBuild();
+
         if (lastRun == null) {
             return true;
         } else {
+            WorkspaceConfiguration workspaceConfiguration = getWorkspaceConfigurationForJob(lastRun.getParent());
             Server server = new Server(new PlasticTool(getDescriptor().getCmExecutable(), launcher, listener, workspaceFilePath));
-            Workspace workspace = server.getWorkspaces().getWorkspace(workspaceName);
+            Workspace workspace = server.getWorkspaces().getWorkspace(workspaceConfiguration.getWorkspaceName());
             try {
                 return (workspace.getBriefHistory(lastRun.getTimestamp(), Calendar.getInstance()).size() > 0);
             } catch (ParseException e) {

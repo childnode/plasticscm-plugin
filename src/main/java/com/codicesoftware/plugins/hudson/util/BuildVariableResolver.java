@@ -1,20 +1,16 @@
 package com.codicesoftware.plugins.hudson.util;
 
+import hudson.Launcher;
+import hudson.Util;
+import hudson.model.*;
+import hudson.util.VariableResolver;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
-
-import hudson.Launcher;
-import hudson.Util;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.Computer;
-import hudson.model.Job;
-import hudson.model.TaskListener;
-import hudson.util.VariableResolver;
 
 /**
  * A {@link VariableResolver} that resolves certain Build variables.
@@ -41,16 +37,7 @@ public class BuildVariableResolver implements VariableResolver<String> {
 
     private static final Logger LOGGER = Logger.getLogger(BuildVariableResolver.class.getName());
     
-    public BuildVariableResolver(final Job<?, ?> job) {
-        computer = null;
-        lazyResolvers.put("JOB_NAME", new LazyResolver() {
-            public String getValue() {
-                return job.getName();
-            }            
-        });
-    }
-    
-    public BuildVariableResolver(final AbstractProject<?, ?> project, final Computer computer) {
+    public BuildVariableResolver(final Job<?, ?> project, final Computer computer) {
         this.computer = computer;
         lazyResolvers.put("JOB_NAME", new LazyResolver() {
             public String getValue() {
